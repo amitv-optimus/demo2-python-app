@@ -1,0 +1,48 @@
+name: Trigger auto deployment for demo2-ca-for-py-app
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/demo2-ca-for-py-app-AutoDeployTrigger-843534be-4242-41a2-bf5c-88b3195fa6ff.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.DEMO2CAFORPYAPP_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.DEMO2CAFORPYAPP_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.DEMO2CAFORPYAPP_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: acr2fastapi.azurecr.io
+          registryUsername: ${{ secrets.DEMO2CAFORPYAPP_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.DEMO2CAFORPYAPP_REGISTRY_PASSWORD }}
+          containerAppName: demo2-ca-for-py-app
+          resourceGroup: DefaultResourceGroup-CCAN
+          imageToBuild: acr2fastapi.azurecr.io/demo2-ca-for-py-app:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
